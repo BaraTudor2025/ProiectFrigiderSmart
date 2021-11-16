@@ -1,0 +1,7 @@
+# pip3 install -r ./requirements.txt
+
+flask
+flask_mqtt
+flask_socketio
+eventlet
+pymongo
