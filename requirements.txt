@@ -5,3 +5,4 @@ flask_mqtt
 flask_socketio
 eventlet
 pymongo
+pytest
