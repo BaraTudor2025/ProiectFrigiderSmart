@@ -1,0 +1,1 @@
+python -m pytest --log-level=debug --log-file=log.txt --log-cli-level=debug

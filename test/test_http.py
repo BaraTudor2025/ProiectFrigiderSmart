@@ -4,6 +4,9 @@ import json
 from main import create_app
 from flask.testing import FlaskClient
 from db import get_database, close_db_connection
+import logging
+
+log = logging.getLogger()
 
 @pytest.fixture()
 def client() -> FlaskClient:
@@ -17,10 +20,71 @@ def test_db_connection():
     assert db != None
     close_db_connection()
 
+
+def get_status_str(rv):
+    return json.loads(rv.data.decode())['status']
+
+def login(client):
+    return client.post('/auth/login', data={'username': 'admin', 'password': 'admin'}, follow_redirects=True)
+
+
 def test_register(client: FlaskClient):
-    rv = client.post('/auth/register', data={'username': 'admin', 'password': 'admin'}, follow_redirects=True)
-    assert rv.status_code == 403
-    res = json.loads(rv.data.decode())
-    assert res['status'] == 'User already exists'
+    res = client.post('/auth/register', data={'username': 'admin', 'password': 'admin'}, follow_redirects=True)
+    assert res.status_code == 403
+    assert get_status_str(res) == 'user already exists'
+
+    res = client.post('/auth/register', data={'password': 'admin'}, follow_redirects=True)
+    assert res.status_code == 400 # bad request
+
+    res = client.post('/auth/register', data={'username': '', 'password': ''}, follow_redirects=True)
+    assert res.status_code == 403
+    assert get_status_str(res) == 'username is required'
+
+
+def test_login(client: FlaskClient):
+    res = client.post('/auth/login', data={'username': 'admin-care-nu-exita', 'password': 'admin'}, follow_redirects=True)
+    assert res.status_code == 403
+    assert get_status_str(res) == 'username not found'
+
+    res = client.post('/auth/login', data={'username': 'admin', 'password': 'parola-gresita'}, follow_redirects=True)
+    assert res.status_code == 403
+    assert get_status_str(res) == 'password is incorrect'
+
+    res = login(client)
+    assert res.status_code == 200
+    assert get_status_str(res) == 'user logged in succesfully'
+
+    res = client.get('/auth/logout')
+    assert res.status_code == 200
+    assert get_status_str(res) == 'user logged out succesfully'
+
+
+def test_products_crud(client: FlaskClient):
+    data = dict(
+        name='lapte',
+        quantity=2,
+        weight=0, # 0 inseamna ca este irelevant
+        expiration_date='2022-02-10',
+        category='lactate'
+    )
+
+    client.get('/auth/logout')
+    res = client.post('/products/add', data=data, follow_redirects=True)
+    log.debug(res.status)
+    assert res.status_code == 403
+    assert get_status_str(res) == 'user is not authenticated'
+
+    login(client)
+
+    res = client.post('/products/delete', data={'name': data['name']})
+    assert res.status_code == 200
+
+    res = client.post('/products/add', data=data)
+    log.debug(get_status_str(res))
+    assert res.status_code == 200
+    
+
+
+
 
 

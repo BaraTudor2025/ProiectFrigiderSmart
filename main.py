@@ -3,10 +3,11 @@ from threading import Thread
 from flask_mqtt import Mqtt
 from flask_socketio import SocketIO
 import eventlet
-import json
 import time
 import db
 import auth
+import products
+import logging
 
 def mqtt_thread(mqtt, app):
     count = 0
@@ -15,16 +16,19 @@ def mqtt_thread(mqtt, app):
 
 app: Flask
 mqtt: Mqtt
+logging.basicConfig(filename='log.txt', encoding='utf-8', level=logging.DEBUG)
+
 
 def create_app():
     # eventlet TREBUIE DEZACTIVAT cand rulam pytest; nush de ce, dar crapa
     # oricum nu sunt sigur cu ce ne ajuta.
     # FARA MONKEY PATCH
-    # eventlet.monkey_patch()
+    #eventlet.monkey_patch()
     global app
     app = Flask("frigider-smart", instance_relative_config=True)
     app.config.from_mapping(SECRET_KEY='dev')
     app.register_blueprint(auth.bp)
+    app.register_blueprint(products.bp)
     return app
 
 def create_mqtt_app():
@@ -35,7 +39,7 @@ def create_mqtt_app():
     app.config['MQTT_PASSWORD'] = ''  # set the password here if the broker demands authentication
     app.config['MQTT_KEEPALIVE'] = 5  # set the time interval for sending a ping to the broker to 5 seconds
     app.config['MQTT_TLS_ENABLED'] = False  # set TLS to disabled for testing purposes
-    # mqtt = Mqtt(app)
+    #mqtt = Mqtt(app)
     #thread = Thread(target=mqtt_thread, args=(mqtt, app))
     #thread.daemon = True
     #thread.start()

@@ -1,12 +1,11 @@
 from itertools import product
 from pymongo import MongoClient
-import pymongo
-from pymongo.database import Database
+from pymongo.database import Database, Collection
 import logging
 import atexit
+from flask import g
 
-logging.basicConfig(level=logging.NOTSET)
-logger = logging.getLogger('mongo-db')
+log = logging.getLogger('mongo-db')
 
 # object is a singleton
 g_frigider_db: Database = None
@@ -17,11 +16,19 @@ def get_database() -> Database:
     global g_mongo_client
     if g_frigider_db == None:
         client = MongoClient("mongodb+srv://florian:florian@smartfridgecluster.yle9m.mongodb.net")
-        logger.debug('client connection made')
+        log.debug('client connection made')
         atexit.register(lambda: client.close())
         g_frigider_db = client['frigider-db']
         g_mongo_client = client
     return g_frigider_db
+
+
+def get_products() -> list[dict]:
+    """
+    trebuie ca user-ul sa fie logat
+    """
+    db = get_database()
+    return db.users.find_one({'_id': g.user_id})['products']
 
 def close_db_connection():
     g_mongo_client.close()
