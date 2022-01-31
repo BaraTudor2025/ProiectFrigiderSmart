@@ -15,6 +15,8 @@ flow:
 
  - client: subscribe la /opendoor - 'close'
  - server: publish la /opendoor - 'close'
+
+ - foloseste session['door_time'] pentru contor
 """
 
 def start_timer():

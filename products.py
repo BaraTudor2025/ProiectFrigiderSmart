@@ -1,6 +1,5 @@
 from datetime import date
-from multiprocessing.sharedctypes import Value
-from sqlite3 import Date
+from urllib.request import Request
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify
 )
@@ -18,6 +17,7 @@ log = logging.getLogger()
 @auth.login_required
 def add():
     try:
+        # validate object
         name = request.form['name']
         if not name:
             raise ValueError('name cannot be empty')
@@ -41,7 +41,7 @@ def add():
 
     except Exception as e:
         log.debug('invalid schema')
-        return jsonify({'status': f'bad schema: {e.args}'}), 403
+        return jsonify({'status': f'bad schema: {e.args}'}), 400
 
     product = {
         "name": name,
@@ -58,46 +58,61 @@ def add():
 @bp.route('/read', methods=['GET'])
 @auth.login_required
 def read():
-    name = request.args.get("name")
-    # /products/read     ?name=ceva
+    name = request.args.get('name')
     db = get_database()
+    user = db.users.find_one({'_id': g.user_id})
     if name is None:
-        return jsonify(db.products.find())
-    if db.products.find({"name": name}):
-        return jsonify(db.products.find_one({"name": name}))
-    else:
-        log.warning("Couldn't find any products by the given name")
-        return jsonify({"error": "couldn't find product"})
+        return jsonify(user['products']), 200
+    # else
+    for p in user['products']:
+        if p['name'] == name:
+            return jsonify(p), 200
+    # else
+    log.warning("Couldn't find any products by the given name")
+    return jsonify({"status": "couldn't find product"}), 404
 
 
-@bp.route('/update', methods=['POST'])
-@auth.login_required
-def update():
-    id = request.form["ProductId"]
-    name = request.form['ProductName']
-    quantity = request.form['ProductQuantity']  # buc
-    weight = request.form['ProductWeight']
-    # TO DO: photo
-    expirationDate = request.form['ProductExpDate']
-    # TO DO: barcode
-    category = request.form['ProductCategory']
+def remove_from_db(name: str):
     db = get_database()
-    product = db.products.find_one({"_id": id})
-    if product is None:
-        return jsonify({"error": "couldn't find the product to update"})
-    db.products.update_one({"_id": id}, {"name": name,
-                                     "quantity": quantity,
-                                     "product_weight": weight,
-                                     "expiration_date": expirationDate,
-                                     "category": category})
+    return db.users.update_one({'_id': g.user_id}, {'$pull': {'products': {'name': name}}})
+
+def _modify(request: Request, inc: bool):
+    name = request.form['name']
+    if not name:
+        return jsonify({'status': 'name cannot be empty'}), 400
+
+    q = 1
+    if not inc:
+        q = -1
+
+    db = get_database()
+    res = db.users.update_one(
+        {'_id': g.user_id}, 
+        {'$inc': {'products.$[elem].quantity': q}},
+        array_filters=[{'elem.name': name, 'elem.quantity': {'$gt': 0}}]
+    )
+    if res.modified_count == 1:
+        return jsonify({'status': 'quantity modified'}), 200
+    else:
+        return jsonify({'status': 'could not modify quantity'}), 200
+
+
+@bp.route('/inc', methods=['POST'])
+@auth.login_required
+def inc():
+    return _modify(request, inc=True)
+
+@bp.route('/dec', methods=['POST'])
+@auth.login_required
+def dec():
+    return _modify(request, inc=False)
 
 
 @bp.route('/delete', methods=['POST'])
 @auth.login_required
 def delete():
     name = request.form['name']
-    db = get_database()
-    if db.users.update_one({'_id': g.user_id}, {'$pull': {'products': {'name': name}}}):
+    if remove_from_db(name):
         return jsonify({'status': 'deleted product'}), 200
     else:
-        return jsonify({"error": "couldn't find the product to delete"}), 403
+        return jsonify({'status': "couldn't find the product to delete"}), 404
