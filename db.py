@@ -12,8 +12,7 @@ g_frigider_db: Database = None
 g_mongo_client: MongoClient = None
 
 def get_database() -> Database:
-    global g_frigider_db
-    global g_mongo_client
+    global g_frigider_db, g_mongo_client
     if g_frigider_db == None:
         client = MongoClient("mongodb+srv://florian:florian@smartfridgecluster.yle9m.mongodb.net")
         log.debug('client connection made')
@@ -31,4 +30,7 @@ def get_products() -> list[dict]:
     return db.users.find_one({'_id': g.user_id})['products']
 
 def close_db_connection():
+    global g_mongo_client, g_frigider_db
     g_mongo_client.close()
+    g_frigider_db = None
+
