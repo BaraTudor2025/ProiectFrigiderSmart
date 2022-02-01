@@ -28,7 +28,7 @@ def register():
     if None != db.users.find_one({'username': username}):
         return jsonify({'status': 'user already exists'}), 403
     else:
-        db.users.insert_one({'username': username, 'password': generate_password_hash(password), 'products': []})
+        db.users.insert_one({'username': username, 'password': generate_password_hash(password), 'products': [], 'shopping_list': []})
     log.debug(f'user registered {username}')
     return jsonify({'status': 'user registered succesfully'}), 200
 

@@ -79,6 +79,20 @@ def remove_from_db(name: str):
     db = get_database()
     return db.users.update_one({'_id': g.user_id}, {'$pull': {'products': {'name': name}}})
 
+
+def add_to_shopping_list(name: str, force=False):
+    db = get_database()
+    sl = db.users.find_one({'_id': g.user_id})['shopping_list']
+    add = lambda: db.users.update_one({'_id': g.user_id}, {'$push': {'shopping_list': name}})
+    if not force:
+        for p in get_products():
+            if p['quantity'] == 0 and p['name'] == name and (name not in sl):
+                add()
+                return
+    elif name not in sl:
+        add()
+
+
 def _modify(request: Request, inc: bool):
     name = request.form['name']
     if not name:
@@ -94,10 +108,21 @@ def _modify(request: Request, inc: bool):
         {'$inc': {'products.$[elem].quantity': q}},
         array_filters=[{'elem.name': name, 'elem.quantity': {'$gt': 0}}]
     )
+
+    if not inc and res.modified_count == 1:
+        add_to_shopping_list(name, force=False)
+
     if res.modified_count == 1:
         return jsonify({'status': 'quantity modified'}), 200
     else:
         return jsonify({'status': 'could not modify quantity'}), 200
+
+
+@bp.route('/shopping_list', methods=['GET'])
+@auth.login_required
+@handle_exception
+def shopping_list():
+    pass
 
 
 @bp.route('/inc', methods=['POST'])
@@ -105,6 +130,7 @@ def _modify(request: Request, inc: bool):
 @handle_exception
 def inc():
     return _modify(request, inc=True)
+
 
 @bp.route('/dec', methods=['POST'])
 @auth.login_required
@@ -119,6 +145,7 @@ def dec():
 def delete():
     name = request.form['name']
     if remove_from_db(name):
+        add_to_shopping_list(name, force=True)
         return jsonify({'status': 'deleted product'}), 200
     else:
         return jsonify({'status': "couldn't find the product to delete"}), 404

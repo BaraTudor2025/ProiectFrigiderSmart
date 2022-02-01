@@ -33,4 +33,5 @@ def close_db_connection():
     global g_mongo_client, g_frigider_db
     g_mongo_client.close()
     g_frigider_db = None
+    g_mongo_client = None
 
