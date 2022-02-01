@@ -8,6 +8,7 @@ import pymongo
 import pymongo.database
 import auth
 from db import get_database, get_products
+from util import handle_exception
 
 bp = Blueprint('products', __name__, url_prefix='/products')
 log = logging.getLogger()
@@ -15,6 +16,7 @@ log = logging.getLogger()
 
 @bp.route('/add', methods=['POST'])
 @auth.login_required
+@handle_exception
 def add():
     try:
         # validate object
@@ -57,6 +59,7 @@ def add():
 
 @bp.route('/read', methods=['GET'])
 @auth.login_required
+@handle_exception
 def read():
     name = request.args.get('name')
     db = get_database()
@@ -99,17 +102,20 @@ def _modify(request: Request, inc: bool):
 
 @bp.route('/inc', methods=['POST'])
 @auth.login_required
+@handle_exception
 def inc():
     return _modify(request, inc=True)
 
 @bp.route('/dec', methods=['POST'])
 @auth.login_required
+@handle_exception
 def dec():
     return _modify(request, inc=False)
 
 
 @bp.route('/delete', methods=['POST'])
 @auth.login_required
+@handle_exception
 def delete():
     name = request.form['name']
     if remove_from_db(name):

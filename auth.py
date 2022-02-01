@@ -6,11 +6,14 @@ from db import get_database
 from bson.objectid import ObjectId
 import functools
 import logging
+from util import handle_exception
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 log = logging.getLogger()
 
+
 @bp.route('/register', methods=["POST"])
+@handle_exception
 def register():
     username = request.form['username']
     password = request.form['password']
@@ -31,6 +34,7 @@ def register():
 
 
 @bp.route('/login', methods=["POST"])
+@handle_exception
 def login():
     username = request.form['username']
     password = request.form['password']
@@ -48,6 +52,7 @@ def login():
 
 
 @bp.route('/logout')
+@handle_exception
 def logout():
     session.clear()
     g.user_id = None
