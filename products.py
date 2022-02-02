@@ -22,6 +22,11 @@ def add():
     try:
         # validate object
         name = request.form['name']
+        if len(name) >= 50:
+            raise ValueError('name too long, must be less than 50 chars')
+        if len(name) <= 1:
+            raise ValueError('name too short')
+
         if not name:
             raise ValueError('name cannot be empty')
 
@@ -32,7 +37,7 @@ def add():
         if (quantity := int(request.form['quantity'])) <= 0 or quantity > 50:
             raise ValueError('invalid quantity')
 
-        if (weight := int(request.form['weight'])) < 0:
+        if (weight := float(request.form['weight'])) < 0 or weight > 20:
             raise ValueError('invalid weight')
 
         expirationDate = date.fromisoformat(request.form['expiration_date'])
@@ -149,17 +154,16 @@ def delete_shopping_list():
 @handle_exception
 def expiration():
     today = date.today()
-    one_week = today + datetime.timedelta(weeks=1)
+    soon_date = today + datetime.timedelta(days=3)
     soon = []
     expired = []
     for p in get_products():
         exp = date.fromisoformat(p['expiration_date'])
         if exp < today:
             expired.append({'name': p['name'], 'date': p['expiration_date']})
-        if exp >= today and exp <= one_week:
+        if exp >= today and exp <= soon_date:
             soon.append({'name': p['name'], 'date': p['expiration_date']})
     return jsonify({'expired': expired, 'soon': soon}), 200
-
 
 
 @bp.route('/inc', methods=['POST'])
@@ -186,3 +190,5 @@ def delete():
         return jsonify({'status': 'deleted product'}), 200
     else:
         return jsonify({'status': "couldn't find the product to delete"}), 404
+
+

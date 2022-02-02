@@ -8,6 +8,7 @@ import db
 import auth
 import products
 import logging
+import recipes
 
 def mqtt_thread(mqtt, app):
     count = 0
@@ -29,6 +30,7 @@ def create_app():
     app.config.from_mapping(SECRET_KEY='dev')
     app.register_blueprint(auth.bp)
     app.register_blueprint(products.bp)
+    app.register_blueprint(recipes.bp)
     return app
 
 def create_mqtt_app():

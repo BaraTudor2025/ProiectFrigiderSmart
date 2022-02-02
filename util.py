@@ -2,7 +2,7 @@ from click import BadArgumentUsage
 from flask import jsonify
 import functools
 import logging
-import werkzeug.exceptions as ex
+import werkzeug.exceptions as werk_ex
 
 log = logging.getLogger()
 
@@ -12,7 +12,7 @@ def handle_exception(view):
     def wrapped_view(**kwargs):
         try:
             return view(**kwargs)
-        except ex.HTTPException as e:
+        except werk_ex.HTTPException as e:
             raise e
         except Exception as e:
             log.exception('exception in http request')
