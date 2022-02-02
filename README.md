@@ -5,7 +5,7 @@ Scopul aplicației este de a îmbunătăți calitatea vieții prin diminuarea ti
 
 Device-ul își propune să îndeplinească următoarele obiective:
 
-* identificarea lipsei unui aliment și comandarea automată a acestuia
+* identificarea lipsei unui aliment și crearea unei liste de cumparaturi
 * ținerea în evidență a produselor și a datelor de expirare a acestora
 * alertarea în situații deosebite precum lăsarea ușii deschise a frigiderului sau expirarea în viitorul apropiat al unui aliment
 * identificarea unei rețete folosind produsele din frigider
