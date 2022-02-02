@@ -63,31 +63,21 @@ def add():
     return jsonify({'status': 'product added'}), 200
 
 
-"""
-/read -> toate produsele
-/read?name=ceva -> produsul numit 'ceva' sau 404 daca 'ceva' nu exista
-"""
+
 @bp.route('/read', methods=['GET'])
 @auth.login_required
 @handle_exception
 def read():
-    name = request.args.get('name')
     db = get_database()
     user = db.users.find_one({'_id': g.user_id})
-    if name is None:
-        return jsonify(user['products']), 200
-    # else
-    for p in user['products']:
-        if p['name'] == name:
-            return jsonify(p), 200
-    # else
-    log.warning("Couldn't find any products by the given name")
-    return jsonify({"status": "couldn't find product"}), 404
+    return jsonify(user['products']), 200
 
 
-def remove_from_db(name: str):
+
+def remove_product_from_db(name: str):
     db = get_database()
     return db.users.update_one({'_id': g.user_id}, {'$pull': {'products': {'name': name}}})
+
 
 
 def add_to_shopping_list(name: str, force=False):
@@ -185,7 +175,7 @@ def dec():
 @handle_exception
 def delete():
     name = request.form['name']
-    if remove_from_db(name):
+    if remove_product_from_db(name):
         add_to_shopping_list(name, force=True)
         return jsonify({'status': 'deleted product'}), 200
     else:

@@ -1,6 +1,5 @@
 from flask import g
 from flask_mqtt import Mqtt
-from main import mqtt
 
 """
 flow:
@@ -19,25 +18,22 @@ flow:
  - server: publish la /door/close
 """
 
-angle_to_close = 15
-seconds_to_wait = 3
+g_angle_to_close = 15
+g_seconds_to_wait = 4
 
 # return true if the door needs to close
-def door_needs_to_close(new_angle: float, angles: list[float]) -> tuple[list[float], bool]:
-    global angle_to_close, seconds_to_wait
-    #angles: list = g.get('angles')
+def door_needs_to_close(angles: list[float], new_angle: float, wait: int = 3, close_angle: float = 15) -> tuple[list[float], bool]:
     if not angles:
-        #g['angles'] = [new_angle]
         return [new_angle], False
     else:
         angles.append(new_angle)
-        # se presupuna ca distanta intre mesaje este de 1 secunda, deci len == time
-        if len(angles) > seconds_to_wait:
+        # se presupuna ca distanta de transmitere intre mesaje este de 1 secunda, deci len == time
+        if len(angles) > wait:
             angles.pop(0)
-        if len(angles) == seconds_to_wait:
+        if len(angles) == wait:
             # sa fie toate sub <angle_to_close>
             for a in angles:
-                if a > angle_to_close:
+                if a > close_angle:
                     return angles, False
             # eroarea de masurare pt float (daca exista) sa fie sub 1 grad
             dif = 0
@@ -47,13 +43,13 @@ def door_needs_to_close(new_angle: float, angles: list[float]) -> tuple[list[flo
     return angles, False
 
 
-def mqtt_subscribe():
+def mqtt_subscribe(mqtt: Mqtt):
     def handle(client, userdata, msg):
-        global angle_to_close, seconds_to_wait
+        global g_angle_to_close, g_seconds_to_wait
         if msg.topic == '/door/angle':
             new_angle = float(msg.payload.decode())
-            angles, ok = door_needs_to_close(new_angle, g.get('angles'))
-            if ok:
+            angles, close = door_needs_to_close(g.get('angles'), new_angle, wait=g_seconds_to_wait, close_angle=g_angle_to_close)
+            if close:
                 mqtt.publish('/door/close', True, qos=2)
                 g.pop('angles')
             else:
@@ -62,11 +58,11 @@ def mqtt_subscribe():
         elif msg.topic == '/door/set/angle':
             angle = int(msg.payload.decode())
             if angle >= 15 and angle <= 45:
-                angle_to_close = angle
+                g_angle_to_close = angle
         elif msg.topic == '/door/set/seconds':
             sec = int(msg.payload.decode())
             if sec >= 3 and sec <= 15:
-                seconds_to_wait = sec
+                g_seconds_to_wait = sec
 
     mqtt.on_message = handle
     mqtt.subscribe('/door/angle', qos=2)

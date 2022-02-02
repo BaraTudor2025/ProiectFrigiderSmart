@@ -5,6 +5,11 @@ import logging
 log = logging.getLogger()
 
 
+def test_db_connection():
+    db = get_database()
+    assert db is not None
+    # close_db_connection()
+
 def check_database_connection():
     db = get_database()
     if db is None:

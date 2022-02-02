@@ -6,7 +6,7 @@ import re
 from flask import Blueprint
 from api_database import check_database_connection
 from db import get_products
-from products import remove_from_db
+from products import remove_product_from_db
 
 
 log = logging.getLogger()
@@ -27,7 +27,7 @@ def remove_product(productName):
     if check_product(productName):
         if check_database_connection():
             try:
-                remove_from_db()
+                remove_product_from_db(productName)
                 if not check_product(productName):
                     return True
                 else:
