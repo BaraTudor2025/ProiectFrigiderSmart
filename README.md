@@ -16,28 +16,20 @@ Device-ul își propune să îndeplinească următoarele obiective:
 * Flask
 
 <!-- GETTING STARTED -->
-## Getting Started
-### Prerequisites
-
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
-
 ### Installation
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-   ```sh
-   git clone https://github.com/your_username_/Project-Name.git
-   ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
-   ```
+This is an example of how to list things you need to use the software and how to install them.
+* python
+  ```sh
+  pip install -r ./requirements.txt
+
+  ```
+
+### Mongo Certificate
+  Download https://letsencrypt.org/certs/lets-encrypt-r3.pem
+
+  rename file .pem to .cer
+  double click and install
+  and then try to run app your SSL issue will resolved. Cheers !!!
+  source: [https://www.mongodb.com/community/forums/t/keep-getting-serverselectiontimeouterror/126190/13]
 
