@@ -1,4 +1,5 @@
 from datetime import date
+import datetime
 from urllib.request import Request
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify
@@ -28,7 +29,7 @@ def add():
             if p['name'] == name:
                 return jsonify({'status': 'product with name already exists'}), 403
 
-        if (quantity := int(request.form['quantity'])) <= 0:
+        if (quantity := int(request.form['quantity'])) <= 0 or quantity > 50:
             raise ValueError('invalid quantity')
 
         if (weight := int(request.form['weight'])) < 0:
@@ -57,6 +58,10 @@ def add():
     return jsonify({'status': 'product added'}), 200
 
 
+"""
+/read -> toate produsele
+/read?name=ceva -> produsul numit 'ceva' sau 404 daca 'ceva' nu exista
+"""
 @bp.route('/read', methods=['GET'])
 @auth.login_required
 @handle_exception
@@ -86,8 +91,10 @@ def add_to_shopping_list(name: str, force=False):
     add = lambda: db.users.update_one({'_id': g.user_id}, {'$push': {'shopping_list': name}})
     if not force:
         for p in get_products():
+            log.debug('SL verifica prod')
             if p['quantity'] == 0 and p['name'] == name and (name not in sl):
                 add()
+                log.debug('SHOPPING LIST not force')
                 return
     elif name not in sl:
         add()
@@ -99,14 +106,16 @@ def _modify(request: Request, inc: bool):
         return jsonify({'status': 'name cannot be empty'}), 400
 
     q = 1
+    filter = {'$lt': 50}
     if not inc:
         q = -1
+        filter = {'$gt': 0}
 
     db = get_database()
     res = db.users.update_one(
         {'_id': g.user_id}, 
         {'$inc': {'products.$[elem].quantity': q}},
-        array_filters=[{'elem.name': name, 'elem.quantity': {'$gt': 0}}]
+        array_filters=[{'elem.name': name, 'elem.quantity': filter}]
     )
 
     if not inc and res.modified_count == 1:
@@ -115,14 +124,42 @@ def _modify(request: Request, inc: bool):
     if res.modified_count == 1:
         return jsonify({'status': 'quantity modified'}), 200
     else:
-        return jsonify({'status': 'could not modify quantity'}), 200
+        return jsonify({'status': 'could not modify quantity'}), 409 # conflict
 
 
 @bp.route('/shopping_list', methods=['GET'])
 @auth.login_required
 @handle_exception
 def shopping_list():
-    pass
+    db = get_database()
+    return jsonify(db.users.find_one({'_id': g.user_id})['shopping_list']), 200
+
+
+@bp.route('/delete_shopping_list', methods=['POST'])
+@auth.login_required
+@handle_exception
+def delete_shopping_list():
+    db = get_database()
+    db.users.update_one({'_id': g.user_id}, {'$set': {'shopping_list': []}})
+    return jsonify({'status': 'shopping list emptied'}), 200
+
+
+@bp.route('/date', methods=['GET'])
+@auth.login_required
+@handle_exception
+def expiration():
+    today = date.today()
+    one_week = today + datetime.timedelta(weeks=1)
+    soon = []
+    expired = []
+    for p in get_products():
+        exp = date.fromisoformat(p['expiration_date'])
+        if exp < today:
+            expired.append({'name': p['name'], 'date': p['expiration_date']})
+        if exp >= today and exp <= one_week:
+            soon.append({'name': p['name'], 'date': p['expiration_date']})
+    return jsonify({'expired': expired, 'soon': soon}), 200
+
 
 
 @bp.route('/inc', methods=['POST'])

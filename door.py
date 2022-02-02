@@ -23,11 +23,12 @@ angle_to_close = 15
 seconds_to_wait = 3
 
 # return true if the door needs to close
-def door_needs_to_close(new_angle: float) -> bool:
+def door_needs_to_close(new_angle: float, angles: list[float]) -> tuple[list[float], bool]:
     global angle_to_close, seconds_to_wait
-    angles: list = g.get('angles')
-    if angles == None:
-        g['angles'] = [new_angle]
+    #angles: list = g.get('angles')
+    if not angles:
+        #g['angles'] = [new_angle]
+        return [new_angle], False
     else:
         angles.append(new_angle)
         # se presupuna ca distanta intre mesaje este de 1 secunda, deci len == time
@@ -37,22 +38,26 @@ def door_needs_to_close(new_angle: float) -> bool:
             # sa fie toate sub <angle_to_close>
             for a in angles:
                 if a > angle_to_close:
-                    return False
+                    return angles, False
             # eroarea de masurare pt float (daca exista) sa fie sub 1 grad
             dif = 0
             for i in range(0, len(angles) - 1):
                 dif += (angles[i] - angles[i+1])
-            return abs(dif) < 1
-    return False
+            return angles, abs(dif) < 1
+    return angles, False
+
 
 def mqtt_subscribe():
     def handle(client, userdata, msg):
         global angle_to_close, seconds_to_wait
         if msg.topic == '/door/angle':
             new_angle = float(msg.payload.decode())
-            if door_needs_to_close(new_angle):
+            angles, ok = door_needs_to_close(new_angle, g.get('angles'))
+            if ok:
                 mqtt.publish('/door/close', True, qos=2)
                 g.pop('angles')
+            else:
+                g['angles'] = angles
 
         elif msg.topic == '/door/set/angle':
             angle = int(msg.payload.decode())
