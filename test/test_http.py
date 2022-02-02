@@ -8,21 +8,27 @@ import logging
 
 log = logging.getLogger()
 
-@pytest.fixture()
-def client() -> FlaskClient:
+
+@pytest.fixture(scope="function", autouse=True)
+def client(request) -> FlaskClient:
     local_app = create_app()
     local_app.testing = True
     client = local_app.test_client()
     yield client
+    def teardown():
+        pass
+        # return to home
+    request.addfinalizer(teardown)
 
 def test_db_connection():
     db = get_database()
-    assert db != None
-    close_db_connection()
+    assert db is not None
+    # close_db_connection()
 
 
 def get_status_str(rv):
     return json.loads(rv.data.decode())['status']
+
 
 def login(client):
     return client.post('/auth/login', data={'username': 'admin', 'password': 'admin'}, follow_redirects=True)
@@ -34,7 +40,7 @@ def test_register(client: FlaskClient):
     assert get_status_str(res) == 'user already exists'
 
     res = client.post('/auth/register', data={'password': 'admin'}, follow_redirects=True)
-    assert res.status_code == 400 # bad request
+    assert res.status_code == 400  # bad request
 
     res = client.post('/auth/register', data={'username': '', 'password': ''}, follow_redirects=True)
     assert res.status_code == 403
@@ -42,7 +48,8 @@ def test_register(client: FlaskClient):
 
 
 def test_login(client: FlaskClient):
-    res = client.post('/auth/login', data={'username': 'admin-care-nu-exita', 'password': 'admin'}, follow_redirects=True)
+    res = client.post('/auth/login', data={'username': 'admin-care-nu-exita', 'password': 'admin'},
+                      follow_redirects=True)
     assert res.status_code == 403
     assert get_status_str(res) == 'username not found'
 
@@ -63,7 +70,7 @@ def test_products_crud(client: FlaskClient):
     data = dict(
         name='lapte',
         quantity=2,
-        weight=0, # 0 inseamna ca este irelevant
+        weight=0,  # 0 inseamna ca este irelevant
         expiration_date='2022-02-10',
         category='lactate'
     )
@@ -82,9 +89,3 @@ def test_products_crud(client: FlaskClient):
     res = client.post('/products/add', data=data)
     log.debug(get_status_str(res))
     assert res.status_code == 200
-    
-
-
-
-
-

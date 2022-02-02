@@ -13,7 +13,7 @@ g_mongo_client: MongoClient = None
 
 def get_database() -> Database:
     global g_frigider_db, g_mongo_client
-    if g_frigider_db == None:
+    if g_frigider_db is None:
         client = MongoClient("mongodb+srv://florian:florian@smartfridgecluster.yle9m.mongodb.net")
         log.debug('client connection made')
         atexit.register(lambda: client.close())
